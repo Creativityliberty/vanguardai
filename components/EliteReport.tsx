@@ -113,16 +113,14 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) =
 
   const exportAsPdf = async () => {
     const reportElement = document.getElementById('elite-dossier-content');
-    if (!reportElement) {
-      console.error("Dossier element not found");
-      return;
-    }
+    if (!reportElement) return;
 
-    addLog("Génération du PDF Premium en cours...");
+    addLog("Génération du PDF Intelligent en cours...");
 
     try {
+      // 1. Capture du rendu global
       const canvas = await html2canvas(reportElement, {
-        scale: 2, // Augmentation de la qualité
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -133,46 +131,79 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) =
       const doc = new jsPDF('p', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const footerHeight = 15; // Hauteur réservée pour le footer
-      const innerPageHeight = pageHeight - footerHeight;
+
+      const headerHeight = 15;
+      const footerHeight = 15;
+      const innerPageHeight = pageHeight - headerHeight - footerHeight;
 
       const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const canvasToMm = pageWidth / canvas.width;
+      const imgHeight = canvas.height * canvasToMm;
 
-      const totalPages = Math.ceil(imgHeight / innerPageHeight);
+      // 2. Identification des zones de coupure interdites (sections, listes, etc.)
+      const avoidElements = Array.from(reportElement.querySelectorAll('section, .break-inside-avoid, h2, h3'));
+      const avoidZones = avoidElements.map(el => {
+        const rect = el.getBoundingClientRect();
+        const containerRect = reportElement.getBoundingClientRect();
+        return {
+          top: (rect.top - containerRect.top) * canvasToMm,
+          bottom: (rect.bottom - containerRect.top) * canvasToMm
+        };
+      });
 
-      for (let i = 0; i < totalPages; i++) {
-        if (i > 0) doc.addPage();
+      let currentTop = 0;
+      let pageNum = 1;
 
-        // Ajout de la tranche d'image
-        const sourceTop = i * innerPageHeight;
-        // jsPDF addImage avec coordonnées pour le "clipping" (image, format, x, y, w, h, alias, compression, rotation)
-        // Note: Le clipping manuel avec addImage est complexe, on utilise le décalage négatif habituel
-        // en bouchant le bas avec le footer.
-        doc.addImage(imgData, 'JPEG', 0, -(i * innerPageHeight), imgWidth, imgHeight);
+      while (currentTop < imgHeight - 2) { // Petite marge d'erreur
+        if (pageNum > 1) doc.addPage();
 
-        // Nettoyage visuel : On dessine un rectangle blanc sur la zone qui dépasse en bas pour laisser place au footer
+        let sliceHeight = innerPageHeight;
+        const potentialCut = currentTop + sliceHeight;
+
+        // Si on n'est pas à la fin, on cherche s'il y a une coupure malheureuse
+        if (potentialCut < imgHeight) {
+          const intersectingZone = avoidZones.find(z => z.top < potentialCut && z.bottom > potentialCut);
+
+          if (intersectingZone && intersectingZone.top > currentTop + 20) {
+            // On coupe JUSTE AVANT l'élément qui pose problème
+            sliceHeight = intersectingZone.top - currentTop;
+          }
+        }
+
+        // Ajout de la tranche d'image correspondante
+        // Note: On utilise le décalage négatif habituel, calé sous le header
+        doc.addImage(imgData, 'JPEG', 0, headerHeight - currentTop, imgWidth, imgHeight);
+
+        // Masquage des zones hors-champ (Header & Footer zones)
         doc.setFillColor(255, 255, 255);
-        doc.rect(0, innerPageHeight, pageWidth, footerHeight, 'F');
+        doc.rect(0, 0, pageWidth, headerHeight, 'F'); // Cache le haut qui dépasse
+        doc.rect(0, headerHeight + sliceHeight, pageWidth, pageHeight - (headerHeight + sliceHeight), 'F'); // Cache le bas
 
-        // Footer Professionnel
-        doc.setFillColor(0, 0, 0); // Noir Vanguard
+        // --- HEADER RÉPÉTÉ ---
+        doc.setFillColor(0, 0, 0);
+        doc.rect(0, 0, pageWidth, 4, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(7);
+        doc.setFont('Inter', 'bold');
+        doc.text("VANGUARD STRATEGIC ELITE SYSTEM // v7.1", 10, 10);
+        doc.text("CONFIDENTIAL DATA", pageWidth - 10, 10, { align: 'right' });
+
+        // --- FOOTER RÉPÉTÉ ---
+        doc.setFillColor(0, 0, 0);
         doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
-
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(8);
-        doc.setFont('Inter', 'bold');
-        const pageLabel = `PAGE ${i + 1} / ${totalPages}`;
-        const securityLabel = "CLASSIFICATION: VANGUARD ELITE // CONFIDENTIEL";
-        const dateLabel = new Date().toLocaleDateString('fr-FR');
+        const dateStr = new Date().toLocaleDateString('fr-FR');
+        doc.text(`VANGUARD REALITY // ${dateStr}`, 10, pageHeight - 4);
+        doc.text(`PAGE ${pageNum}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
+        doc.text("Neural Intelligence Output", pageWidth - 10, pageHeight - 4, { align: 'right' });
 
-        doc.text(securityLabel, 10, pageHeight - 4);
-        doc.text(pageLabel, pageWidth / 2, pageHeight - 4, { align: 'center' });
-        doc.text(dateLabel, pageWidth - 10, pageHeight - 4, { align: 'right' });
+        currentTop += sliceHeight;
+        pageNum++;
       }
 
-      doc.save(`VANGUARD-ELITE-REPORT-${new Date().toISOString().split('T')[0]}.pdf`);
-      addLog("PDF Premium exporté avec succès.");
+      doc.save(`VANGUARD-ELITE-REPORT-FINAL-${new Date().getTime()}.pdf`);
+      addLog("PDF Intelligent exporté avec succès.");
     } catch (error: any) {
       console.error("PDF Export failed", error);
       addLog(`ÉCHEC EXPORT PDF: ${error.message}`);
