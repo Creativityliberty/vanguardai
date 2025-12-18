@@ -2,10 +2,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ImageSize } from "../types";
 
-const MODEL_FAST = 'gemini-3-flash-preview';
-const MODEL_PRO = 'gemini-3-pro-preview';
-const MODEL_PRO_IMAGE = 'gemini-3-pro-image-preview';
-const MODEL_FLASH_IMAGE = 'gemini-2.5-flash-image';
+const MODEL_FAST = 'gemini-1.5-flash';
+const MODEL_PRO = 'gemini-1.5-pro';
+const MODEL_PRO_IMAGE = 'gemini-1.5-pro'; // Utilise Pro pour les prompts complexes si Imagen n'est pas dispo
+const MODEL_FLASH_IMAGE = 'gemini-1.5-flash';
 
 export class GeminiService {
   private get client() {
@@ -20,7 +20,8 @@ export class GeminiService {
       model: MODEL_FAST,
       contents: `Analyse ce brief business et extrais les métriques marketing clés. 
       Brief: "${brief}"
-      Réponds en JSON avec: promesse, mecanique_unique, offre.`,
+      Réponds EXCLUSIVEMENT en Français.
+      Structure de réponse JSON attendue avec les champs: promesse (la promesse forte), mecanique_unique (comment ça marche de façon unique), offre (le package vendu).`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -40,10 +41,10 @@ export class GeminiService {
   async buildAvatar(biz: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Construis un profil d'avatar psychologique profond pour cette offre : ${JSON.stringify(biz)}.
-      Inclus l'identité, la routine, les douleurs (émotionnelles, spirituelles, financières) et le "hook" marketing central.`,
+      contents: `Construis un profil d'avatar psychologique profond et détaillé pour cette offre : ${JSON.stringify(biz)}.
+      Réponds EXCLUSIVEMENT en Français.
+      Inclus l'identité (qui est cette personne), sa routine quotidienne, ses douleurs profondes (émotionnelles, spirituelles, financières) et le "hook" marketing central qui stopperait son scroll.`,
       config: {
-        thinkingConfig: { thinkingBudget: 32768 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -72,7 +73,8 @@ export class GeminiService {
     const response = await this.client.models.generateContent({
       model: MODEL_FAST,
       contents: `Tu ES l'avatar défini ici : ${JSON.stringify(avatarData)}. 
-      Réponds à la question suivante avec authenticité et vulnérabilité.
+      Réponds à la question suivante avec authenticité, vulnérabilité et SANS langage marketing.
+      Tu dois répondre EXCLUSIVEMENT en Français, comme un humain réel.
       Question: ${question}`,
       config: {
         systemInstruction: "Réponds à la première personne ('Je'). Pas de langage marketing. Sois un humain réel.",
@@ -93,8 +95,10 @@ export class GeminiService {
   async splitPersonas(avatar: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_FAST,
-      contents: `Divise cet avatar global en 4 segments (personas) hyper-spécifiques avec chacun un angle publicitaire différent.
-      Avatar: ${JSON.stringify(avatar)}`,
+      contents: `Divise cet avatar global en 4 segments de clientèle (personas) hyper-spécifiques.
+      Pour chaque persona, définis un angle publicitaire psychologique différent et percutant.
+      Réponds EXCLUSIVEMENT en Français.
+      Avatar source: ${JSON.stringify(avatar)}`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -117,7 +121,8 @@ export class GeminiService {
   async detectAwareness(brief: string) {
     const response = await this.client.models.generateContent({
       model: MODEL_FAST,
-      contents: `Détermine le niveau de conscience d'Eugene Schwartz (1-5) pour : "${brief}".`,
+      contents: `Détermine précisément le niveau de conscience d'Eugene Schwartz (de 1 - Inconscient à 5 - Très Conscient) pour ce produit/service : "${brief}".
+      Réponds EXCLUSIVEMENT en Français.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -136,10 +141,11 @@ export class GeminiService {
   async generateStrategy(awareness: any, biz: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Génère une stratégie d'angle d'attaque marketing basée sur le niveau de conscience ${awareness.niveau}.
+      contents: `Génère une stratégie d'attaque marketing de haut niveau basée sur le niveau de conscience ${awareness.niveau}.
+      L'objectif est de briser les barrières psychologiques.
+      Réponds EXCLUSIVEMENT en Français.
       Offre: ${JSON.stringify(biz)}`,
       config: {
-        thinkingConfig: { thinkingBudget: 32768 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -157,7 +163,9 @@ export class GeminiService {
   async researchInterests(query: string) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Identifie 15 intérêts Meta Ads hyper-spécifiques et réels pour : ${query}. Utilise Google Search pour trouver des intérêts actuels et valides.`,
+      contents: `Identifie 15 intérêts Meta Ads (Facebook/Instagram) hyper-spécifiques, réels et ciblables pour : ${query}. 
+      Utilise Google Search pour trouver des intérêts actuels et valides utilisés par les régies publicitaires.
+      Réponds EXCLUSIVEMENT en Français.`,
       config: {
         tools: [{ googleSearch: {} }]
       }
@@ -171,10 +179,10 @@ export class GeminiService {
   async clusterInterests(interestsText: string) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Organise ces intérêts Meta Ads en 3 clusters thématiques logiques (ex: 'Symptômes', 'Outils spirituels', 'Célébrités/Pages').
-      Données: ${interestsText}`,
+      contents: `Organise ces intérêts Meta Ads en 3 clusters thématiques stratégiques (ex: 'Symptômes & Problèmes', 'Outils & Logiciels', 'Influenceurs & Autorités').
+      Réponds EXCLUSIVEMENT en Français.
+      Données à traiter: ${interestsText}`,
       config: {
-        thinkingConfig: { thinkingBudget: 32768 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -196,11 +204,11 @@ export class GeminiService {
   async generateMetaConfig(biz: any, strategy: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Génère la configuration technique recommandée pour Meta Ads.
+      contents: `Génère la configuration technique experte recommandée pour lancer les campagnes Meta Ads.
+      Réponds EXCLUSIVEMENT en Français.
       Offre: ${JSON.stringify(biz)}
-      Stratégie: ${JSON.stringify(strategy)}`,
+      Stratégie adoptée: ${JSON.stringify(strategy)}`,
       config: {
-        thinkingConfig: { thinkingBudget: 16000 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -222,9 +230,11 @@ export class GeminiService {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
       contents: `Rédige une publicité Facebook haute-conversion pour le persona : ${persona.nom}. 
-      Angle : ${angle}. Inclus un prompt visuel détaillé pour Imagen.`,
+      Angle psychologique : ${angle}. 
+      Réponds EXCLUSIVEMENT en Français.
+      La publicité doit inclure un crochet (hook) irrésistible, un corps de texte émotionnel et un appel à l'action clair.
+      Inclus également un prompt visuel détaillé traduisible pour Imagen afin de générer le visuel parfait.`,
       config: {
-        thinkingConfig: { thinkingBudget: 32768 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -247,7 +257,8 @@ export class GeminiService {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
       contents: `Rédige le dossier stratégique final de niveau 'Vanguard Strategic Counsel' pour le client. 
-      Utilise tous les artefacts suivants : ${JSON.stringify(allArtifacts)}.
+      Réponds EXCLUSIVEMENT en Français.
+      Utilise l'intégralité des artefacts suivants pour une synthèse parfaite : ${JSON.stringify(allArtifacts)}.
       
       STRUCTURE ET CONTENU CRITIQUE :
       1. Section 06 Synthèse : Ne mets PAS d'astérisques (**) dans les titres ou le corps du texte, utilise des structures de phrases propres.
@@ -257,9 +268,7 @@ export class GeminiService {
          - Suggère une stratégie de Lookalikes (LAL) 1% basée sur les clients existants ou les conversions.
       3. Ton : Froid, analytique, expert, mais percutant.
       4. Roadmap : 30 jours (Semaine 1: Setup Pixel & Creative, Semaine 2: Test broad vs Intérêts, Semaine 3: Scale winners, Semaine 4: Retargeting LAL).`,
-      config: {
-        thinkingConfig: { thinkingBudget: 32768 }
-      }
+      config: {}
     });
     return response.text;
   }
@@ -272,7 +281,7 @@ export class GeminiService {
           parts: [{ text: `High-end professional advertising visual, 8k resolution, cinematic lighting: ${prompt}` }]
         },
         config: {
-          imageConfig: { 
+          imageConfig: {
             aspectRatio: "3:4",
             imageSize: size
           }

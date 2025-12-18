@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   Zap, Cpu, Trash2, Terminal as TerminalIcon, Sparkles, Send, Key, Loader2, FileText, ChevronRight
 } from 'lucide-react';
 import { NodeId, FlowStatus, Store, ViewMode } from './types';
@@ -15,19 +15,26 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<FlowStatus>(FlowStatus.IDLE);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [checkingKey, setCheckingKey] = useState(true);
-  const [store, setStore] = useState<Store>({ 
-    artifacts: {}, 
-    paradigm: { partial: {} }, 
+  const [store, setStore] = useState<Store>({
+    artifacts: {},
+    paradigm: { partial: {} },
     logs: [],
     viewMode: 'LAB'
   });
   const [nodeStatuses, setNodeStatuses] = useState<Record<string, string>>({});
-  
+
   const serviceRef = useRef<GeminiService | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkKey = async () => {
+      // Priorité à la clé injectée via l'environnement (Vite)
+      if (process.env.API_KEY) {
+        setHasApiKey(true);
+        setCheckingKey(false);
+        return;
+      }
+
       const aiStudio = (window as any).aistudio;
       if (aiStudio) {
         const selected = await aiStudio.hasSelectedApiKey();
@@ -105,10 +112,10 @@ const App: React.FC = () => {
 
   const runProtocol = async () => {
     if (!brief || !serviceRef.current) return;
-    
+
     setStatus(FlowStatus.RUNNING);
     setStore(p => ({ ...p, artifacts: {}, paradigm: { partial: {} }, logs: [], viewMode: 'LAB' }));
-    
+
     const initialStatuses: Record<string, string> = {};
     STATIC_NODES_CONFIG.forEach(n => initialStatuses[n.id] = 'pending');
     setNodeStatuses(initialStatuses);
@@ -136,7 +143,7 @@ const App: React.FC = () => {
       await execute(NodeId.RAW_INPUT, "Raw Scan", async () => ({ brief, timestamp: new Date().toISOString() }));
       const biz = await execute(NodeId.BUSINESS_EXTRACTOR, "Extracteur Business", async () => await serviceRef.current!.analyzeBusiness(brief));
       const avatar = await execute(NodeId.AVATAR_BUILDER, "Construction Avatar (Thinking: 32K)", async () => await serviceRef.current!.buildAvatar(biz));
-      
+
       await execute(NodeId.INTERVIEW_SIMULATOR, "Interview Neurale", async () => {
         const transcript = [];
         const currentParadigm = { ...store.paradigm.partial };
@@ -155,7 +162,7 @@ const App: React.FC = () => {
       const awareness = await execute(NodeId.AWARENESS_DETECTOR, "Radar Conscience", async () => await serviceRef.current!.detectAwareness(brief));
       const strategy = await execute(NodeId.OFFER_STRATEGIST, "Forge Stratégique (Pro Thinking)", async () => await serviceRef.current!.generateStrategy(awareness, biz));
       const interests = await execute(NodeId.INTEREST_LAB, "Labo Intérêts (Web Grounding)", async () => await serviceRef.current!.researchInterests(`${brief} target audience Meta Ads interests`));
-      
+
       await execute(NodeId.INTEREST_CLUSTER, "Cluster Meta (Thinking: 32K)", async () => await serviceRef.current!.clusterInterests(interests.text));
 
       updateNode(NodeId.COPYWRITING_MASTER, 'active');
@@ -250,7 +257,7 @@ const App: React.FC = () => {
           {status === FlowStatus.IDLE ? (
             <div className="flex-1 flex flex-col justify-center items-center p-16 animate-in fade-in zoom-in-95 duration-700">
               <Cpu className="w-12 h-12 text-cyan-500 mb-10 opacity-80" />
-              <h2 className="text-6xl font-black uppercase tracking-tighter text-white mb-8 text-center leading-[0.9]">Activate <br/><span className="text-cyan-600">Reality Protocol</span></h2>
+              <h2 className="text-6xl font-black uppercase tracking-tighter text-white mb-8 text-center leading-[0.9]">Activate <br /><span className="text-cyan-600">Reality Protocol</span></h2>
               <div className="w-full max-w-2xl relative mt-4 group">
                 <div className="absolute -inset-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-3xl blur opacity-10 group-hover:opacity-30 transition duration-1000"></div>
                 <div className="relative">
@@ -278,7 +285,7 @@ const App: React.FC = () => {
           <div className="flex-1 overflow-y-auto p-6 space-y-3 font-mono text-[10px] custom-scrollbar">
             {store.logs.map((log, i) => (
               <div key={i} className="text-gray-500 border-l border-white/10 pl-4 py-0.5 leading-relaxed group hover:border-cyan-500/40 transition-colors">
-                <span className="text-cyan-800 mr-3 font-black">>></span>
+                <span className="text-cyan-800 mr-3 font-black">&gt;&gt;</span>
                 <span className="group-hover:text-gray-300 transition-colors">{log}</span>
               </div>
             ))}
