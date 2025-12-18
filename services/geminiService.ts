@@ -18,11 +18,10 @@ export class GeminiService {
   async analyzeBusiness(brief: string) {
     const response = await this.client.models.generateContent({
       model: MODEL_FAST,
-      contents: `Analyse ce brief business et extrais les métriques marketing clés. 
-      Brief: "${brief}"
-      Réponds EXCLUSIVEMENT en Français.
-      Structure de réponse JSON attendue avec les champs: promesse (la promesse forte), mecanique_unique (comment ça marche de façon unique), offre (le package vendu).`,
+      contents: `${brief}\n\nAnalyse ce brief business et extrais les métriques marketing clés. 
+      Structure de réponse JSON attendue avec les champs: promesse, mecanique_unique, offre.`,
       config: {
+        systemInstruction: "Tu es l'Extracteur Business de VanguardAI. Tu analyses les briefs et extrais les métriques clés. Réponds EXCLUSIVEMENT en Français.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -41,10 +40,10 @@ export class GeminiService {
   async buildAvatar(biz: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Construis un profil d'avatar psychologique profond et détaillé pour cette offre : ${JSON.stringify(biz)}.
-      Réponds EXCLUSIVEMENT en Français.
-      Inclus l'identité (qui est cette personne), sa routine quotidienne, ses douleurs profondes (émotionnelles, spirituelles, financières) et le "hook" marketing central qui stopperait son scroll.`,
+      contents: `${JSON.stringify(biz)}\n\nConstruis un profil d'avatar psychologique profond et détaillé pour cette offre.
+      Inclus l'identité, sa routine quotidienne, ses douleurs profondes et le "hook" marketing central.`,
       config: {
+        systemInstruction: "Tu es le Vanguard Avatar Architect. Ton rôle est de créer des profils psychologiques ultra-détaillés. Réponds EXCLUSIVEMENT en Français.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -72,12 +71,9 @@ export class GeminiService {
   async simulateAvatarResponse(question: string, avatarData: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_FAST,
-      contents: `Tu ES l'avatar défini ici : ${JSON.stringify(avatarData)}. 
-      Réponds à la question suivante avec authenticité, vulnérabilité et SANS langage marketing.
-      Tu dois répondre EXCLUSIVEMENT en Français, comme un humain réel.
-      Question: ${question}`,
+      contents: `CONTEXTE (AVATAR): ${JSON.stringify(avatarData)}\n\nQUESTION: ${question}`,
       config: {
-        systemInstruction: "Réponds à la première personne ('Je'). Pas de langage marketing. Sois un humain réel.",
+        systemInstruction: "Tu ES l'avatar défini. Réponds avec authenticité, vulnérabilité et SANS langage marketing. Réponds à la première personne ('Je'). Pas de marketing. Sois un humain réel. Réponds EXCLUSIVEMENT en Français.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -229,12 +225,12 @@ export class GeminiService {
   async generateCopy(persona: any, angle: string) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Rédige une publicité Facebook haute-conversion pour le persona : ${persona.nom}. 
+      contents: `${JSON.stringify(persona)}\n\nRédige une publicité Facebook haute-conversion pour ce persona. 
       Angle psychologique : ${angle}. 
-      Réponds EXCLUSIVEMENT en Français.
       La publicité doit inclure un crochet (hook) irrésistible, un corps de texte émotionnel et un appel à l'action clair.
       Inclus également un prompt visuel détaillé traduisible pour Imagen afin de générer le visuel parfait.`,
       config: {
+        systemInstruction: "Tu es le Vanguard Copywriting Master. Tu rédiges des publicités à travers le prisme de la psychologie humaine. Réponds EXCLUSIVEMENT en Français.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -256,19 +252,13 @@ export class GeminiService {
   async generateFinalDossier(allArtifacts: any) {
     const response = await this.client.models.generateContent({
       model: MODEL_PRO,
-      contents: `Rédige le dossier stratégique final de niveau 'Vanguard Strategic Counsel' pour le client. 
-      Réponds EXCLUSIVEMENT en Français.
-      Utilise l'intégralité des artefacts suivants pour une synthèse parfaite : ${JSON.stringify(allArtifacts)}.
+      contents: `ARTEFACTS PRÉCÉDENTS : ${JSON.stringify(allArtifacts)}\n\nRédige le dossier stratégique final de niveau 'Vanguard Strategic Counsel' pour le client. 
       
       STRUCTURE ET CONTENU CRITIQUE :
-      1. Section 06 Synthèse : Ne mets PAS d'astérisques (**) dans les titres ou le corps du texte, utilise des structures de phrases propres.
-      2. Stratégie Meta Ads Avancée :
-         - Détaille des audiences spécifiques pour les clusters (Divinatoires, Énergétique, Psychologique).
-         - Suggère des audiences personnalisées (Retargeting sur 3-secondes-video-views, 75%-video-views, et Page-Visitors 30-days).
-         - Suggère une stratégie de Lookalikes (LAL) 1% basée sur les clients existants ou les conversions.
-      3. Ton : Froid, analytique, expert, mais percutant.
-      4. Roadmap : 30 jours (Semaine 1: Setup Pixel & Creative, Semaine 2: Test broad vs Intérêts, Semaine 3: Scale winners, Semaine 4: Retargeting LAL).`,
-      config: {}
+      1. Section 06 Synthèse : Ne mets PAS d'astérisques (**) dans les titres ou le corps du texte...`,
+      config: {
+        systemInstruction: "Tu es le Vanguard Strategic Counsel. Ton rôle est de compiler tous les artefacts en un dossier d'élite. Ton ton est froid, analytique et expert. Réponds EXCLUSIVEMENT en Français.",
+      }
     });
     return response.text;
   }
