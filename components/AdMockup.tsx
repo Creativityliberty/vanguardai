@@ -1,8 +1,9 @@
-
 import React, { useState } from 'react';
 import { Sparkles, Globe, MoreHorizontal, Loader2, RefreshCw, Wand2 } from 'lucide-react';
 import { AdData, ImageSize } from '../types';
 import { GeminiService } from '../services/geminiService';
+import { storage } from '../services/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 interface AdMockupProps {
   ad: AdData;
@@ -19,13 +20,27 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
   const [editPrompt, setEditPrompt] = useState('');
   const [showEdit, setShowEdit] = useState(false);
 
+  const uploadToStorage = async (base64: string): Promise<string> => {
+    const timestamp = Date.now();
+    const filename = `ads/ad_${index}_${timestamp}.jpg`;
+    const storageRef = ref(storage, filename);
+    // Gemini renvoie "data:image/jpeg;base64,..."
+    await uploadString(storageRef, base64, 'data_url');
+    return await getDownloadURL(storageRef);
+  };
+
   const generateVisual = async () => {
     if (loading) return;
     setLoading(true);
-    const imgData = await service.generateImage(ad.image_prompt, imageSize);
-    if (imgData) {
-      setImage(imgData);
-      if (onImageGenerated) onImageGenerated(index, imgData);
+    try {
+      const imgData = await service.generateImage(ad.image_prompt, imageSize);
+      if (imgData) {
+        const publicUrl = await uploadToStorage(imgData);
+        setImage(publicUrl);
+        if (onImageGenerated) onImageGenerated(index, publicUrl);
+      }
+    } catch (e: any) {
+      console.error("Image gen/upload failed", e);
     }
     setLoading(false);
   };
@@ -33,11 +48,16 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
   const applyEdit = async () => {
     if (!image || !editPrompt || editLoading) return;
     setEditLoading(true);
-    const editedData = await service.editImage(image, editPrompt);
-    if (editedData) {
-      setImage(editedData);
-      if (onImageGenerated) onImageGenerated(index, editedData);
-      setEditPrompt('');
+    try {
+      const editedData = await service.editImage(image, editPrompt);
+      if (editedData) {
+        const publicUrl = await uploadToStorage(editedData);
+        setImage(publicUrl);
+        if (onImageGenerated) onImageGenerated(index, publicUrl);
+        setEditPrompt('');
+      }
+    } catch (e: any) {
+      console.error("Image edit/upload failed", e);
     }
     setEditLoading(false);
   };
@@ -51,7 +71,7 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
           <div>
             <div className="text-sm font-bold leading-none">Vanguard Brand</div>
             <div className="text-[11px] text-gray-500 flex items-center mt-1">
-              Sponsored <Globe className="w-3 h-3 ml-1"/>
+              Sponsored <Globe className="w-3 h-3 ml-1" />
             </div>
           </div>
         </div>
@@ -69,12 +89,12 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
         {image ? (
           <div className="w-full h-full relative">
             <img src={image} alt="AI Generated" className="w-full h-full object-cover animate-in fade-in duration-1000" />
-            
+
             {/* Edit Overlay */}
             <div className="absolute bottom-4 left-4 right-4 flex flex-col space-y-2 no-print">
               {showEdit ? (
                 <div className="bg-black/80 backdrop-blur-md p-2 rounded-xl border border-white/10 flex items-center shadow-2xl animate-in slide-in-from-bottom-2">
-                  <input 
+                  <input
                     type="text"
                     value={editPrompt}
                     onChange={(e) => setEditPrompt(e.target.value)}
@@ -82,7 +102,7 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
                     className="bg-transparent text-[10px] text-white outline-none flex-1 px-2 font-mono"
                     onKeyDown={(e) => e.key === 'Enter' && applyEdit()}
                   />
-                  <button 
+                  <button
                     onClick={applyEdit}
                     disabled={editLoading}
                     className="p-1.5 bg-cyan-600 rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-50"
@@ -91,7 +111,7 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
                   </button>
                 </div>
               ) : (
-                <button 
+                <button
                   onClick={() => setShowEdit(true)}
                   className="self-start bg-black/50 hover:bg-black/70 backdrop-blur-md text-[10px] text-white px-3 py-1.5 rounded-full border border-white/10 flex items-center space-x-2 transition-all"
                 >
@@ -104,7 +124,7 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
         ) : (
           <div className="text-center p-8 flex flex-col items-center no-print">
             <div className="text-gray-400 uppercase tracking-widest text-[10px] font-black mb-4">Neural Canvas v3.0</div>
-            
+
             <div className="flex bg-gray-200 p-1 rounded-lg mb-6 border border-gray-300">
               {(['1K', '2K', '4K'] as ImageSize[]).map((size) => (
                 <button
@@ -120,9 +140,9 @@ export const AdMockup: React.FC<AdMockupProps> = ({ ad, index, service, onImageG
             <p className="text-[10px] text-gray-500 font-mono italic mb-6 max-w-[250px] line-clamp-4">
               {ad.image_prompt}
             </p>
-            
-            <button 
-              onClick={generateVisual} 
+
+            <button
+              onClick={generateVisual}
               disabled={loading}
               className="inline-flex items-center px-6 py-2.5 bg-black text-white rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl disabled:opacity-50"
             >

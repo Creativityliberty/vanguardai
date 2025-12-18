@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Zap, Cpu, Trash2, Terminal as TerminalIcon, Sparkles, Send, Key, Loader2, FileText, ChevronRight
+  Zap, Cpu, Trash2, Terminal as TerminalIcon, Sparkles, Send, Key, Loader2, FileText, ChevronRight, CloudUpload
 } from 'lucide-react';
+import { db } from './services/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { NodeId, FlowStatus, Store, ViewMode } from './types';
 import { STATIC_NODES_CONFIG, QUESTION_BANK, QID_MAPPING } from './constants';
 import { GeminiService } from './services/geminiService';
@@ -194,6 +196,23 @@ const App: React.FC = () => {
     }
   };
 
+  const saveReportToCloud = async () => {
+    addLog("SYNCHRONISATION CLOUD : Transfert des artefacts...");
+    try {
+      const docRef = await addDoc(collection(db, "reports"), {
+        artifacts: store.artifacts,
+        brief,
+        timestamp: serverTimestamp(),
+        version: "7.1-ELITE"
+      });
+      addLog(`RAPPPORT SÉCURISÉ : ID ${docRef.id}`);
+      alert("Succès ! Votre Rapport Elite a été persisté dans le Cloud Vanguard.");
+    } catch (e: any) {
+      addLog(`ERREUR SYNCHRO : ${e.message}`);
+      alert("Échec de la sauvegarde cloud. Vérifiez votre connexion.");
+    }
+  };
+
   const toggleViewMode = () => {
     setStore(p => ({ ...p, viewMode: p.viewMode === 'LAB' ? 'DOSSIER' : 'LAB' }));
   };
@@ -213,7 +232,13 @@ const App: React.FC = () => {
   }
 
   if (store.viewMode === 'DOSSIER' && store.artifacts[NodeId.CAMPAIGN_ASSEMBLER]) {
-    return <EliteReport artifacts={store.artifacts} onBack={toggleViewMode} />;
+    return (
+      <EliteReport
+        artifacts={store.artifacts}
+        onBack={toggleViewMode}
+        onSave={saveReportToCloud}
+      />
+    );
   }
 
   return (

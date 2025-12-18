@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Printer, ChevronRight, FileDown, Globe, FileType, Terminal as TerminalIcon } from 'lucide-react';
+import { ShieldCheck, Printer, ChevronRight, FileDown, Globe, FileType, Terminal as TerminalIcon, CloudUpload } from 'lucide-react';
 import { NodeId } from '../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -7,9 +7,10 @@ import html2canvas from 'html2canvas';
 interface EliteReportProps {
   artifacts: Record<string, any>;
   onBack: () => void;
+  onSave?: () => void;
 }
 
-export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) => {
+export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onSave }) => {
   const finalMarkdown = artifacts[NodeId.CAMPAIGN_ASSEMBLER]?.content || "";
   const biz = artifacts[NodeId.BUSINESS_EXTRACTOR] || {};
   const avatar = artifacts[NodeId.AVATAR_BUILDER] || {};
@@ -230,6 +231,11 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) =
           </div>
         </div>
         <div className="flex items-center space-x-4">
+          {onSave && (
+            <button onClick={onSave} className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center shadow-lg transition-all">
+              <CloudUpload className="w-4 h-4 mr-2" /> SAUVEGARDER
+            </button>
+          )}
           <button onClick={exportAsHtml} className="bg-white/10 hover:bg-white/20 text-white px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center border border-white/10 transition-all">
             <Globe className="w-4 h-4 mr-2" /> EXPORT HTML
           </button>
