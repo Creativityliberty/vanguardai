@@ -2,10 +2,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ImageSize } from "../types";
 
-const MODEL_FAST = 'gemini-1.5-flash';
-const MODEL_PRO = 'gemini-1.5-pro';
-const MODEL_PRO_IMAGE = 'gemini-1.5-pro'; // Utilise Pro pour les prompts complexes si Imagen n'est pas dispo
-const MODEL_FLASH_IMAGE = 'gemini-1.5-flash';
+const MODEL_FAST = 'gemini-2.5-flash';
+const MODEL_PRO = 'gemini-2.5-pro';
+const MODEL_PRO_IMAGE = 'gemini-2.5-flash-image';
+const MODEL_FLASH_IMAGE = 'gemini-2.5-flash-image';
 
 export class GeminiService {
   private get client() {
