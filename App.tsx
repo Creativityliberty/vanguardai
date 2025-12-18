@@ -120,11 +120,13 @@ const App: React.FC = () => {
     STATIC_NODES_CONFIG.forEach(n => initialStatuses[n.id] = 'pending');
     setNodeStatuses(initialStatuses);
 
+    const results: Record<string, any> = {};
     const execute = async (id: NodeId, name: string, fn: () => Promise<any>) => {
       updateNode(id, 'active');
       addLog(`ACTIVATION : Protocole ${name}...`);
       try {
         const res = await fn();
+        results[id] = res;
         setStore(prev => ({ ...prev, artifacts: { ...prev.artifacts, [id]: res } }));
         addLog(`SUCCÈS : Artefact ${name} sécurisé.`);
         updateNode(id, 'done');
@@ -171,6 +173,7 @@ const App: React.FC = () => {
         addLog(`Rédaction créative pour ${p.nom}...`);
         const ad = await serviceRef.current!.generateCopy(p, strategy.angle);
         ads.push(ad);
+        results[NodeId.COPYWRITING_MASTER] = [...ads];
         setStore(prev => ({ ...prev, artifacts: { ...prev.artifacts, [NodeId.COPYWRITING_MASTER]: [...ads] } }));
       }
       updateNode(NodeId.COPYWRITING_MASTER, 'done');
@@ -179,13 +182,7 @@ const App: React.FC = () => {
 
       await execute(NodeId.CAMPAIGN_ASSEMBLER, "Dossier Elite Compilation", async () => {
         addLog("Synthèse neurale en cours...");
-        // Récupération des artifacts finaux via une capture du store courant
-        let finalArtifacts = {};
-        setStore(prev => {
-          finalArtifacts = prev.artifacts;
-          return prev;
-        });
-        const finalMd = await serviceRef.current!.generateFinalDossier(finalArtifacts);
+        const finalMd = await serviceRef.current!.generateFinalDossier(results);
         return { content: finalMd, summary: "Dossier Elite finalisé." };
       });
 

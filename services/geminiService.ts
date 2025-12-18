@@ -4,8 +4,8 @@ import { ImageSize } from "../types";
 
 const MODEL_FAST = 'gemini-2.5-flash';
 const MODEL_PRO = 'gemini-2.5-pro';
-const MODEL_PRO_IMAGE = 'gemini-2.5-flash-image';
-const MODEL_FLASH_IMAGE = 'gemini-2.5-flash-image';
+const MODEL_PRO_IMAGE = 'gemini-2.0-flash-exp';
+const MODEL_FLASH_IMAGE = 'gemini-2.0-flash-exp';
 
 export class GeminiService {
   private get client() {
@@ -271,10 +271,8 @@ export class GeminiService {
           parts: [{ text: `High-end professional advertising visual, 8k resolution, cinematic lighting: ${prompt}` }]
         },
         config: {
-          imageConfig: {
-            aspectRatio: "3:4",
-            imageSize: size
-          }
+          // Simplification pour éviter 400 INVALID_ARGUMENT
+          // On peut aussi essayer sans imageConfig si le modèle est multimodal direct
         }
       });
       for (const part of response.candidates?.[0]?.content?.parts || []) {

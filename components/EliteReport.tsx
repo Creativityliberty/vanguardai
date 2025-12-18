@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Printer, ChevronRight, FileDown, Globe, FileType } from 'lucide-react';
+import { ShieldCheck, Printer, ChevronRight, FileDown, Globe, FileType, Terminal as TerminalIcon } from 'lucide-react';
 import { NodeId } from '../types';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -16,6 +16,7 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) =
   const personas = artifacts[NodeId.PERSONA_SPLITTER] || [];
   const clusters = artifacts[NodeId.INTEREST_CLUSTER] || [];
   const ads = artifacts[NodeId.COPYWRITING_MASTER] || [];
+  const interview = artifacts[NodeId.INTERVIEW_SIMULATOR] || { transcript: [] };
 
   const parseBold = (text: string) => {
     if (!text) return "";
@@ -249,6 +250,26 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) =
                   <p className="text-sm text-gray-800 leading-relaxed font-medium">{avatar.pains?.financial}</p>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section className="mb-32 print:mb-12 break-inside-avoid">
+            <h2 className="text-4xl font-black uppercase tracking-tighter border-b-8 border-black pb-6 mb-12">02b. Simulation Paradigm</h2>
+            <div className="space-y-6 bg-gray-900 text-cyan-400 p-10 rounded-2xl font-mono text-sm border-l-8 border-cyan-500 shadow-2xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-4 opacity-10"><TerminalIcon className="w-12 h-12" /></div>
+              <div className="text-[10px] uppercase tracking-widest opacity-50 mb-6">Neural Transcript / Raw Data</div>
+              {(interview.transcript || []).map((item: any, i: number) => (
+                <div key={i} className="space-y-3 mb-8 border-b border-cyan-500/10 pb-6 last:border-0 border-dashed">
+                  <div className="flex items-start">
+                    <span className="text-cyan-600 mr-4 font-black">Q:</span>
+                    <span className="text-gray-300">{item.q}</span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="text-green-500 mr-4 font-black">A:</span>
+                    <span className="text-cyan-100 italic">{item.a}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 
