@@ -118,44 +118,64 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack }) =
       return;
     }
 
-    addLog("Génération du PDF en cours...");
+    addLog("Génération du PDF Premium en cours...");
 
     try {
       const canvas = await html2canvas(reportElement, {
-        scale: 1.5,
+        scale: 2, // Augmentation de la qualité
         useCORS: true,
-        logging: true,
+        logging: false,
         backgroundColor: '#ffffff',
         windowWidth: 850,
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const doc = new jsPDF('p', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
+      const footerHeight = 15; // Hauteur réservée pour le footer
+      const innerPageHeight = pageHeight - footerHeight;
 
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      let heightLeft = imgHeight;
-      let position = 0;
+      const totalPages = Math.ceil(imgHeight / innerPageHeight);
 
-      doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      for (let i = 0; i < totalPages; i++) {
+        if (i > 0) doc.addPage();
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        doc.addPage();
-        doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        // Ajout de la tranche d'image
+        const sourceTop = i * innerPageHeight;
+        // jsPDF addImage avec coordonnées pour le "clipping" (image, format, x, y, w, h, alias, compression, rotation)
+        // Note: Le clipping manuel avec addImage est complexe, on utilise le décalage négatif habituel
+        // en bouchant le bas avec le footer.
+        doc.addImage(imgData, 'JPEG', 0, -(i * innerPageHeight), imgWidth, imgHeight);
+
+        // Nettoyage visuel : On dessine un rectangle blanc sur la zone qui dépasse en bas pour laisser place au footer
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, innerPageHeight, pageWidth, footerHeight, 'F');
+
+        // Footer Professionnel
+        doc.setFillColor(0, 0, 0); // Noir Vanguard
+        doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.setFont('Inter', 'bold');
+        const pageLabel = `PAGE ${i + 1} / ${totalPages}`;
+        const securityLabel = "CLASSIFICATION: VANGUARD ELITE // CONFIDENTIEL";
+        const dateLabel = new Date().toLocaleDateString('fr-FR');
+
+        doc.text(securityLabel, 10, pageHeight - 4);
+        doc.text(pageLabel, pageWidth / 2, pageHeight - 4, { align: 'center' });
+        doc.text(dateLabel, pageWidth - 10, pageHeight - 4, { align: 'right' });
       }
 
-      doc.save(`VANGUARD-REPORT-${new Date().toISOString().split('T')[0]}.pdf`);
-      addLog("PDF exporté avec succès.");
+      doc.save(`VANGUARD-ELITE-REPORT-${new Date().toISOString().split('T')[0]}.pdf`);
+      addLog("PDF Premium exporté avec succès.");
     } catch (error: any) {
       console.error("PDF Export failed", error);
       addLog(`ÉCHEC EXPORT PDF: ${error.message}`);
-      // Tentative de print natif si l'export auto échoue
       window.print();
     }
   };
