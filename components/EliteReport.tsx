@@ -116,10 +116,10 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
     const reportElement = document.getElementById('elite-dossier-content');
     if (!reportElement) return;
 
-    addLog("Génération du PDF Intelligent en cours...");
+    addLog("Génération du PDF Elite (Format Long) en cours...");
 
     try {
-      // 1. Capture du rendu avec largeur fixe pour calibration
+      // 1. Capture du rendu avec largeur fixe
       const originalWidth = reportElement.style.width;
       const originalMaxWidth = reportElement.style.maxWidth;
       reportElement.style.width = '850px';
@@ -137,89 +137,18 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
       reportElement.style.maxWidth = originalMaxWidth;
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const doc = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
 
-      const headerHeight = 15;
-      const footerHeight = 15;
-      const innerPageHeight = pageHeight - headerHeight - footerHeight;
+      // Calcul des dimensions en mm pour une seule page
+      const imgWidthMm = 210; // Largeur A4
+      const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
 
-      const containerRect = reportElement.getBoundingClientRect();
-      const cssWidth = containerRect.width || 850;
-      const cssToMmRatio = pageWidth / cssWidth;
+      // Création du document avec une taille personnalisée (Largeur A4, Hauteur dynamique)
+      const doc = new jsPDF('p', 'mm', [imgWidthMm, imgHeightMm]);
 
-      const imgWidth = pageWidth;
-      const imgHeight = canvas.height * (pageWidth / canvas.width);
-
-      // 2. Identification des zones de coupure interdites (sections, blocks, paragraphs)
-      const avoidElements = Array.from(reportElement.querySelectorAll('section, h2, h3, h4, .break-inside-avoid, p, li, img'));
-      const avoidZones = avoidElements.map(el => {
-        const rect = el.getBoundingClientRect();
-        return {
-          top: (rect.top - containerRect.top) * cssToMmRatio,
-          bottom: (rect.bottom - containerRect.top) * cssToMmRatio
-        };
-      });
-
-      let currentTop = 0;
-      let pageNum = 1;
-
-      while (currentTop < imgHeight - 2) { // Petite marge d'erreur
-        if (pageNum > 1) doc.addPage();
-
-        let sliceHeight = innerPageHeight;
-        const potentialCut = currentTop + sliceHeight;
-
-        // Si on n'est pas à la fin, on cherche s'il y a une coupure malheureuse
-        if (potentialCut < imgHeight) {
-          // On cherche si un élément "important" est à cheval sur la coupure
-          const intersectingZone = avoidZones.find(z => z.top < potentialCut && z.bottom > potentialCut);
-
-          if (intersectingZone) {
-            // On veut éviter de couper si le début de l'élément est à une distance raisonnable
-            // pour ne pas créer des pages vides. 
-            // Si l'élément commence plus de 10mm après le début de la page actuelle.
-            if (intersectingZone.top > currentTop + 10) {
-              sliceHeight = intersectingZone.top - currentTop;
-            }
-          }
-        }
-
-        // Ajout de la tranche d'image correspondante
-        // Note: On utilise le décalage négatif habituel, calé sous le header
-        doc.addImage(imgData, 'JPEG', 0, headerHeight - currentTop, imgWidth, imgHeight);
-
-        // Masquage des zones hors-champ (Header & Footer zones)
-        doc.setFillColor(255, 255, 255);
-        doc.rect(0, 0, pageWidth, headerHeight, 'F'); // Cache le haut qui dépasse
-        doc.rect(0, headerHeight + sliceHeight, pageWidth, pageHeight - (headerHeight + sliceHeight), 'F'); // Cache le bas
-
-        // --- HEADER RÉPÉTÉ ---
-        doc.setFillColor(0, 0, 0);
-        doc.rect(0, 0, pageWidth, 4, 'F');
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(7);
-        doc.setFont('Inter', 'bold');
-        doc.text("VANGUARD STRATEGIC ELITE SYSTEM // v7.1", 10, 10);
-        doc.text("CONFIDENTIAL DATA", pageWidth - 10, 10, { align: 'right' });
-
-        // --- FOOTER RÉPÉTÉ ---
-        doc.setFillColor(0, 0, 0);
-        doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8);
-        const dateStr = new Date().toLocaleDateString('fr-FR');
-        doc.text(`VANGUARD REALITY // ${dateStr}`, 10, pageHeight - 4);
-        doc.text(`PAGE ${pageNum}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
-        doc.text("Neural Intelligence Output", pageWidth - 10, pageHeight - 4, { align: 'right' });
-
-        currentTop += sliceHeight;
-        pageNum++;
-      }
+      doc.addImage(imgData, 'JPEG', 0, 0, imgWidthMm, imgHeightMm);
 
       doc.save(`VANGUARD-ELITE-REPORT-FINAL-${new Date().getTime()}.pdf`);
-      addLog("PDF Intelligent exporté avec succès.");
+      addLog("PDF Elite exporté avec succès (Format Continu).");
     } catch (error: any) {
       console.error("PDF Export failed", error);
       addLog(`ÉCHEC EXPORT PDF: ${error.message}`);
