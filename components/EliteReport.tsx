@@ -119,7 +119,12 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
     addLog("Génération du PDF Intelligent en cours...");
 
     try {
-      // 1. Capture du rendu global
+      // 1. Capture du rendu avec largeur fixe pour calibration
+      const originalWidth = reportElement.style.width;
+      const originalMaxWidth = reportElement.style.maxWidth;
+      reportElement.style.width = '850px';
+      reportElement.style.maxWidth = '850px';
+
       const canvas = await html2canvas(reportElement, {
         scale: 2,
         useCORS: true,
@@ -127,6 +132,9 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
         backgroundColor: '#ffffff',
         windowWidth: 850,
       });
+
+      reportElement.style.width = originalWidth;
+      reportElement.style.maxWidth = originalMaxWidth;
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const doc = new jsPDF('p', 'mm', 'a4');
@@ -137,18 +145,20 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
       const footerHeight = 15;
       const innerPageHeight = pageHeight - headerHeight - footerHeight;
 
-      const imgWidth = pageWidth;
-      const canvasToMm = pageWidth / canvas.width;
-      const imgHeight = canvas.height * canvasToMm;
+      const containerRect = reportElement.getBoundingClientRect();
+      const cssWidth = containerRect.width || 850;
+      const cssToMmRatio = pageWidth / cssWidth;
 
-      // 2. Identification des zones de coupure interdites (sections, listes, etc.)
-      const avoidElements = Array.from(reportElement.querySelectorAll('section, .break-inside-avoid, h2, h3'));
+      const imgWidth = pageWidth;
+      const imgHeight = canvas.height * (pageWidth / canvas.width);
+
+      // 2. Identification des zones de coupure interdites (sections, blocks, paragraphs)
+      const avoidElements = Array.from(reportElement.querySelectorAll('section, h2, h3, h4, .break-inside-avoid, p, li, img'));
       const avoidZones = avoidElements.map(el => {
         const rect = el.getBoundingClientRect();
-        const containerRect = reportElement.getBoundingClientRect();
         return {
-          top: (rect.top - containerRect.top) * canvasToMm,
-          bottom: (rect.bottom - containerRect.top) * canvasToMm
+          top: (rect.top - containerRect.top) * cssToMmRatio,
+          bottom: (rect.bottom - containerRect.top) * cssToMmRatio
         };
       });
 
@@ -163,11 +173,16 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
 
         // Si on n'est pas à la fin, on cherche s'il y a une coupure malheureuse
         if (potentialCut < imgHeight) {
+          // On cherche si un élément "important" est à cheval sur la coupure
           const intersectingZone = avoidZones.find(z => z.top < potentialCut && z.bottom > potentialCut);
 
-          if (intersectingZone && intersectingZone.top > currentTop + 20) {
-            // On coupe JUSTE AVANT l'élément qui pose problème
-            sliceHeight = intersectingZone.top - currentTop;
+          if (intersectingZone) {
+            // On veut éviter de couper si le début de l'élément est à une distance raisonnable
+            // pour ne pas créer des pages vides. 
+            // Si l'élément commence plus de 10mm après le début de la page actuelle.
+            if (intersectingZone.top > currentTop + 10) {
+              sliceHeight = intersectingZone.top - currentTop;
+            }
           }
         }
 
@@ -316,7 +331,7 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
               <div className="absolute top-0 right-0 p-4 opacity-10"><TerminalIcon className="w-12 h-12" /></div>
               <div className="text-[10px] uppercase tracking-widest opacity-50 mb-6">Neural Transcript / Raw Data</div>
               {(interview.transcript || []).map((item: any, i: number) => (
-                <div key={i} className="space-y-3 mb-8 border-b border-cyan-500/10 pb-6 last:border-0 border-dashed">
+                <div key={i} className="space-y-3 mb-8 border-b border-cyan-500/10 pb-6 last:border-0 border-dashed break-inside-avoid">
                   <div className="flex items-start">
                     <span className="text-cyan-600 mr-4 font-black">Q:</span>
                     <span className="text-gray-300">{item.q}</span>
@@ -334,7 +349,7 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
             <h2 className="text-4xl font-black uppercase tracking-tighter border-b-8 border-black pb-6 mb-12">03. Matrice de Segmentation</h2>
             <div className="space-y-6">
               {personas.map((p: any, i: number) => (
-                <div key={i} className="flex border-3 border-gray-100 rounded-2xl overflow-hidden group hover:border-black transition-all print:border-gray-300">
+                <div key={i} className="flex border-3 border-gray-100 rounded-2xl overflow-hidden group hover:border-black transition-all print:border-gray-300 break-inside-avoid">
                   <div className="bg-gray-50 p-8 w-1/3 border-r-3 border-gray-100 font-black uppercase text-base flex items-center justify-center text-center print:p-4 print:text-xs">{p.nom}</div>
                   <div className="p-8 flex-1 text-base italic text-gray-700 leading-relaxed bg-white print:p-4 print:text-xs">"{p.angle_publicitaire}"</div>
                 </div>
@@ -346,7 +361,7 @@ export const EliteReport: React.FC<EliteReportProps> = ({ artifacts, onBack, onS
             <h2 className="text-4xl font-black uppercase tracking-tighter border-b-8 border-black pb-6 mb-12">04. Ciblage Meta</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 print:gap-4">
               {clusters.map((c: any, i: number) => (
-                <div key={i} className="bg-gray-50 p-10 rounded-3xl border-3 border-gray-100 flex flex-col h-full print:p-4 print:border-gray-200">
+                <div key={i} className="bg-gray-50 p-10 rounded-3xl border-3 border-gray-100 flex flex-col h-full print:p-4 print:border-gray-200 break-inside-avoid">
                   <div className="text-[12px] font-black text-cyan-700 uppercase mb-6 tracking-[0.3em]">{c.cluster_name}</div>
                   <div className="space-y-3 mb-8 flex-1">
                     {c.interests.map((int: string, j: number) => (
